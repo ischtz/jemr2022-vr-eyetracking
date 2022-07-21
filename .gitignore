@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+experiment/gaze_eval_log.txt
+.vscode/
