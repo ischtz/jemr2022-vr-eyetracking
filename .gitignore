@@ -130,3 +130,7 @@ dmypy.json
 
 experiment/gaze_eval_log.txt
 .vscode/
+results/participants.csv
+
+# Do not upload pickle files to Github
+*.pkl

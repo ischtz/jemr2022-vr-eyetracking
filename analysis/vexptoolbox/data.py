@@ -284,7 +284,7 @@ class ValidationResult(object):
         vars = ['acc', 'accX', 'accY', 'sd', 'sdX', 'sdY',  'rmsi', 'rmsiX', 'rmsiY', 'ipd', 
                 'acc_L', 'accX_L', 'accY_L', 'sd_L', 'sdX_L', 'sdY_L',  'rmsi_L', 'rmsiX_L', 'rmsiY_L',
                 'acc_R', 'accX_R', 'accY_R', 'sd_R', 'sdX_R', 'sdY_R',  'rmsi_R', 'rmsiX_R', 'rmsiY_R',
-                'start_sample', 'end_sample', 'repeated', 'repeated_C', 'repeated_L', 'repeated_R']
+                'start_sample', 'end_sample', 'repeated', 'repeated_C', 'repeated_L', 'repeated_R', 'repeated_any']
 
         for v in vars:
             setattr(self, v, MISSING_VALUE)
@@ -495,6 +495,7 @@ class ValidationResult(object):
                 d['repeated_C'] = np.sum(np.diff(delta, prepend=np.nan) == 0) / (len(delta)-1)
                 if 'repeated_L' in d.keys() and 'repeated_R' in d.keys():
                     d['repeated'] = np.sum((np.diff(deltaM[0], prepend=np.nan) == 0) | (np.diff(deltaM[1], prepend=np.nan) == 0)) / (len(delta)-1)
+                    d['repeated_any'] = np.sum((np.diff(deltaM[0], prepend=np.nan) == 0) | (np.diff(deltaM[1], prepend=np.nan) == 0) | (np.diff(delta, prepend=np.nan) == 0)) / (len(delta)-1)
 
                 # DEBUG USE ONLY - repeated samples details
                 #if d['repeated'] > 0.5:
