@@ -163,6 +163,7 @@ def read_json_data(folder, show_progress=True, samples_range=(25, 115), exclude_
            sam_data)
 
 
+
 def load_pickle_data(folder):
     """ Load pickled preprocessed data """
     with open(os.path.join(folder, 'gaze_targets.pkl'), 'rb') as f:
@@ -181,3 +182,110 @@ def load_pickle_data(folder):
     print('Data loaded from pickles.')
     #return (tar, tar_i10, val, pp, sam, tar_samp)
     return (tar, tar_i10, val, pp, sam)
+
+
+def fill_target_matrix(tar_df, grid=5.0, xrange=(-15, 15), yrange=(-15, 15)):
+    """ Assign target data to cells in a matrix at 5-deg intervals 
+
+    Args:
+        tar_df (DataFrame): by-target validation data
+        xrange: Tuple of horizontal target positions (xmin, xmax) 
+        yrange: Tuple of vertical target positions (ymin, ymax) 
+        grid (float): gridding interval of result matrix
+
+    Returns:
+        dict containing data matrix for each measure plus plot metadata
+    """
+    if tar_df.shape[0] < 1:
+        raise ValueError('Empty DataFrame passed to fill_target_matrix!')
+
+    if xrange is not None:
+        xmin, xmax = xrange
+    else:
+        xmin, xmax = tar_df.x.min(), tar_df.x.max()
+    if yrange is not None:
+        ymin, ymax = yrange
+    else:
+        ymin, ymax = tar_df.y.min(), tar_df.y.max()
+    depths = tar_df.d.unique()
+
+    # Set up matrix grid
+    xval = np.arange(xmin, xmax+grid, grid)
+    yval = np.arange(ymin, ymax+grid, grid)
+    xx, yy = np.meshgrid(yval, -xval)
+
+    mat = {}
+    mat['_x'] = [xmin, xmax]
+    mat['_y'] = [ymin, ymax]
+    mat['_g'] = grid
+    mat['_vid'] = tar_df.val_id.values[0]
+    mat['n'] = 1
+    mat['acc'] = {}
+    mat['sd'] = {}
+    mat['rmsi'] = {}
+    mat['rep'] = {}
+
+    for d in depths:
+        a = np.ones(xx.shape) * np.nan  # accuracy
+        s = np.ones(xx.shape) * np.nan  # precision (SD)
+        r = np.ones(xx.shape) * np.nan  # precision (RMSi)
+        rv = np.ones(xx.shape) * np.nan  # repeated value count
+
+        dtar = tar_df.loc[tar_df.d == d, :]
+        for tar in dtar.iterrows():
+            t = tar[1]
+            tar_candidates = np.argwhere((xx == t.x) & (yy == t.y))
+            if len(tar_candidates) > 0:
+                tix = np.argwhere((xx == t.x) & (yy == t.y))[0]
+                a[tix[0], tix[1]] = t.acc
+                s[tix[0], tix[1]] = t.sd
+                r[tix[0], tix[1]] = t.rmsi
+                rv[tix[0], tix[1]] = t.repeated
+
+        mat['acc'][d] = a
+        mat['sd'][d] = s
+        mat['rmsi'][d] = r
+        mat['rep'][d] = rv
+
+    return mat
+
+
+def aggregate_target_matrix(mat_list, fun=np.mean):
+    """ Aggregate a list of target matrices into a single target matrix"""
+
+    N = len(mat_list)
+
+    mat = {}
+    mat['_x'] = mat_list[0]['_x']
+    mat['_y'] = mat_list[0]['_y']
+    mat['_g'] = mat_list[0]['_g']
+    mat['n'] = N
+
+    arrays = {}
+
+    depths = []
+    for m in mat_list:
+        # Check for identical axis ranges, get depth planes
+        if m['_x'] != mat['_x'] or m['_y'] != mat['_y'] or m['_g'] != mat['_g']:
+            err = 'Not all supplied matrices have the same dimensions! Error occured at VID {:s}'
+            raise ValueError(err.format(m['_vid']))
+        for d in m['acc'].keys():
+            if d not in depths:
+                depths.append(d)
+
+        for measure in ['acc', 'sd', 'rmsi', 'rep']:
+            if measure not in arrays.keys():
+                arrays[measure] = {}
+                mat[measure] = {}
+            for d in depths:
+                if d not in arrays[measure].keys():
+                    arrays[measure][d] = []
+                    mat[measure][d] = None
+                arrays[measure][d].append(m[measure][d])   
+    
+    for measure in ['acc', 'sd', 'rmsi', 'rep']:
+        for d in depths:
+            agg = np.stack(arrays[measure][d], axis=2)
+            mat[measure][d] = np.apply_along_axis(fun, 2, agg)
+
+    return mat
