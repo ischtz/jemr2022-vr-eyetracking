@@ -96,15 +96,15 @@ def read_json_data(folder, show_progress=True, samples_range=(25, 115), exclude_
                                           end_sample=samples_range[1],
                                           exclude_acc=5.0)
 
+            # All targets with outlier correction at 5 deg, skipping one eye missing
+            agg_valid_samp = vr.recomputeMetrics(agg_fun=np.mean,
+                                                 start_sample=samples_range[0],
+                                                 end_sample=samples_range[1],
+                                                 exclude_acc=5.0,
+                                                 skip_missing_eye=True)
+
             # These weren't used in the manuscript but are kept commented out here
             # for verification that removing sampling errors did not change results.
-            
-            # # All targets with outlier correction at 5 deg, skipping one eye missing
-            # agg_valid_samp = vr.recomputeMetrics(agg_fun=np.mean,
-            #                                          start_sample=samples_range[0],
-            #                                          end_sample=samples_range[1],
-            #                                          exclude_acc=5.0,
-            #                                          skip_missing_eye=True)
 
             # # All targets with outlier correction at 5 deg, skipping one eye missing and sampling errors
             # agg_skip_nosamp = vr.recomputeMetrics(agg_fun=np.mean,
@@ -128,8 +128,8 @@ def read_json_data(folder, show_progress=True, samples_range=(25, 115), exclude_
                     d['{:s}_valid'.format(k)] = agg_all_valid.results[k]
                 if k in agg_inner.results.keys():
                     d['{:s}_i10'.format(k)] = agg_inner.results[k]
-                #if k in agg_valid_samp.results.keys():
-                #    d['{:s}_nomonoc'.format(k)] = agg_valid_samp.results[k]
+                if k in agg_valid_samp.results.keys():
+                    d['{:s}_nomonoc'.format(k)] = agg_valid_samp.results[k]
                 #if k in agg_skip_nosamp.results.keys():
                 #    d['{:s}_nosamp'.format(k)] = agg_skip_weird.results[k]
 
