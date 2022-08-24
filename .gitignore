@@ -134,3 +134,4 @@ results/participants.csv
 
 # Do not upload pickle files to Github
 *.pkl
+*.tif
